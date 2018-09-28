@@ -1,3 +1,7 @@
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const HtmlReplaceWebpackPlugin = require('html-replace-webpack-plugin');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
+
 module.exports = {
     entry: "./src/main/ts/index.tsx",
     output: {
@@ -8,7 +12,7 @@ module.exports = {
     devtool: "source-map",
     devServer: {
         contentBase: './', 
-        publicPath: '/dist/'
+        //publicPath: '/dist/'
         //,https: true
     },
     resolve: {
@@ -33,5 +37,21 @@ module.exports = {
     externals: {
         "react": "React",
         "react-dom": "ReactDOM"        
-    }
+    }, 
+    plugins: [
+        new CopyWebpackPlugin([
+            { from: 'index.css', to: './' }
+        ]), 
+        new HtmlWebpackPlugin({template: 'index.html', inject: false}), 
+        new HtmlReplaceWebpackPlugin([
+            {
+                pattern: './node_modules/react/umd/react.development.js',
+                replacement: 'https://unpkg.com/react@16/umd/react.production.min.js'
+            },
+            {
+                pattern: './node_modules/react-dom/umd/react-dom.development.js',
+                replacement: 'https://unpkg.com/react-dom@16/umd/react-dom.production.min.js'
+            }
+        ])
+    ]
 };
