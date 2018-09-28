@@ -38,6 +38,7 @@ export class NoiseCanceller {
 
     public start(onComplete?: (error?: any) => void) {
 
+        let requestedSampleRate = this.audioContext.sampleRate || 44100;
         let successCallback = (stream: MediaStream) => {
             this.started = true;
             this.stream = stream;
@@ -48,7 +49,12 @@ export class NoiseCanceller {
             this.volumeNode = this.audioContext.createGain();
             this.volumeNode.gain.value = this.outputScale;
 
-            let length = Math.round(this.maxLatencyNanoseconds * stream.getTracks()[0].getSettings().sampleRate / 1000000000)+1;
+            let sampleRate = stream.getTracks()[0].getSettings().sampleRate;
+            if( !sampleRate ) {
+                sampleRate = requestedSampleRate;
+            }            
+
+            let length = Math.round(this.maxLatencyNanoseconds * sampleRate / 1000000000)+1;
             let dataBuffers = [new Float32Array(length)];
             let indices = [0];
             
@@ -56,7 +62,7 @@ export class NoiseCanceller {
             processorNode.onaudioprocess = (ev: AudioProcessingEvent) => {
                 let inputBuffer = ev.inputBuffer;
                 let outputBuffer = ev.outputBuffer;
-                let sampleSize = Math.round(this.latencyNanoseconds * stream.getTracks()[0].getSettings().sampleRate / 1000000000);
+                let sampleSize = Math.round(this.latencyNanoseconds * sampleRate / 1000000000);
                 
                 for( let channel=0; channel<outputBuffer.numberOfChannels; channel++ ) {
 
@@ -93,7 +99,11 @@ export class NoiseCanceller {
                 onComplete(e);
             }
         };
-        let config = {audio: true};
+        let config: MediaStreamConstraints = {
+            audio: {
+                sampleRate: requestedSampleRate                
+            } 
+        };
         if( navigator.mediaDevices && navigator.mediaDevices.getUserMedia ) {
             navigator.mediaDevices.getUserMedia(config).then( successCallback).catch(failureCallback);
         } else {
